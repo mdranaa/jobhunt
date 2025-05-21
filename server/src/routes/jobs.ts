@@ -7,8 +7,8 @@ import {
   updateJob,
   deleteJob,
   uploadJobImage
-} from '../controllers/jobs.js';
-import { protect, authorize } from '../middleware/auth.js';
+} from '../controllers/jobs';
+import { protect } from '../middleware/auth';
 
 const router = express.Router();
 

@@ -1,14 +1,22 @@
-import Job from '../models/Job.js';
+import { Request, Response } from 'express';
+import Job from '../models/Job';
 import { v2 as cloudinary } from 'cloudinary';
 
-// Configure Cloudinary
+interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    role: string;
+  };
+  file?: Express.Multer.File;
+}
+
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || '',
+  api_key: process.env.CLOUDINARY_API_KEY || '',
+  api_secret: process.env.CLOUDINARY_API_SECRET || ''
 });
 
-export const createJob = async (req, res) => {
+export const createJob = async (req: AuthRequest, res: Response) => {
   try {
     const {
       title,
@@ -24,7 +32,7 @@ export const createJob = async (req, res) => {
     let imagePublicId = '';
 
     if (req.file) {
-      const b64 = Buffer.from(req.file.buffer).toString('base64');
+      const b64 = req.file.buffer.toString('base64');
       const dataURI = `data:${req.file.mimetype};base64,${b64}`;
 
       const result = await cloudinary.uploader.upload(dataURI, {
@@ -45,19 +53,19 @@ export const createJob = async (req, res) => {
       location,
       imageUrl,
       imagePublicId,
-      user: req.user.id,
+      user: req.user!.id,
       applicationDeadline: applicationDeadline || null
     });
 
     res.status(201).json({ success: true, job });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-export const getJobs = async (req, res) => {
+export const getJobs = async (req: Request, res: Response) => {
   try {
-    const queryObj = { ...req.query };
+    const queryObj = { ...req.query } as Record<string, any>;
     const excludeFields = ['page', 'sort', 'limit', 'fields'];
     excludeFields.forEach((field) => delete queryObj[field]);
 
@@ -66,8 +74,8 @@ export const getJobs = async (req, res) => {
       select: 'name company'
     });
 
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 10;
     const startIndex = (page - 1) * limit;
 
     query.skip(startIndex).limit(limit);
@@ -85,12 +93,12 @@ export const getJobs = async (req, res) => {
       },
       jobs
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-export const getJob = async (req, res) => {
+export const getJob = async (req: Request, res: Response): Promise<void> => {
   try {
     const job = await Job.findById(req.params.id).populate({
       path: 'user',
@@ -98,38 +106,44 @@ export const getJob = async (req, res) => {
     });
 
     if (!job) {
-      return res.status(404).json({ success: false, message: 'Job not found' });
+      res.status(404).json({ success: false, message: 'Job not found' });
+      return;
     }
 
     res.status(200).json({ success: true, job });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-export const updateJob = async (req, res) => {
+export const updateJob = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     let job = await Job.findById(req.params.id);
 
     if (!job) {
-      return res.status(404).json({ success: false, message: 'Job not found' });
+      res.status(404).json({ success: false, message: 'Job not found' });
+      return;
     }
 
-    if (job.user.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({
+    if (job.user.toString() !== req.user!.id && req.user!.role !== 'admin') {
+      res.status(403).json({
         success: false,
         message: 'Not authorized to update this job'
       });
+      return;
     }
 
-    const updateData = { ...req.body };
+    const updateData: Record<string, any> = { ...req.body };
 
     if (req.file) {
       if (job.imagePublicId) {
         await cloudinary.uploader.destroy(job.imagePublicId);
       }
 
-      const b64 = Buffer.from(req.file.buffer).toString('base64');
+      const b64 = req.file.buffer.toString('base64');
       const dataURI = `data:${req.file.mimetype};base64,${b64}`;
 
       const result = await cloudinary.uploader.upload(dataURI, {
@@ -147,24 +161,29 @@ export const updateJob = async (req, res) => {
     });
 
     res.status(200).json({ success: true, job });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-export const deleteJob = async (req, res) => {
+export const deleteJob = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     const job = await Job.findById(req.params.id);
 
     if (!job) {
-      return res.status(404).json({ success: false, message: 'Job not found' });
+      res.status(404).json({ success: false, message: 'Job not found' });
+      return;
     }
 
-    if (job.user.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({
+    if (job.user.toString() !== req.user!.id && req.user!.role !== 'admin') {
+      res.status(403).json({
         success: false,
         message: 'Not authorized to delete this job'
       });
+      return;
     }
 
     if (job.imagePublicId) {
@@ -177,21 +196,25 @@ export const deleteJob = async (req, res) => {
       success: true,
       message: 'Job deleted successfully'
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-export const uploadJobImage = async (req, res) => {
+export const uploadJobImage = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
   try {
     if (!req.file) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Please upload a file'
       });
+      return;
     }
 
-    const b64 = Buffer.from(req.file.buffer).toString('base64');
+    const b64 = req.file.buffer.toString('base64');
     const dataURI = `data:${req.file.mimetype};base64,${b64}`;
 
     const result = await cloudinary.uploader.upload(dataURI, {
@@ -204,7 +227,7 @@ export const uploadJobImage = async (req, res) => {
       url: result.secure_url,
       public_id: result.public_id
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
 };

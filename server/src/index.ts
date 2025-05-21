@@ -1,25 +1,25 @@
-import dotenv from 'dotenv';
-import express from 'express';
+import * as dotenv from 'dotenv';
+import express, { Application, Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 
-import authRoutes from './routes/auth.js';
-import jobRoutes from './routes/jobs.js';
+import authRoutes from './routes/auth';
+import jobRoutes from './routes/jobs';
 
 dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI;
+const app: Application = express();
+const PORT: number = Number(process.env.PORT) || 5000;
+const MONGODB_URI: string = process.env.MONGODB_URI || '';
 
-// Connect to MongoDB
+// MongoDB connection
 mongoose
   .connect(MONGODB_URI)
   .then(() => console.log('Connected to MongoDB'))
-  .catch((err) => {
+  .catch((err: Error) => {
     console.error('Failed to connect to MongoDB:', err);
     process.exit(1);
   });
@@ -65,7 +65,7 @@ app.use('/auth', authRoutes);
 app.use('/jobs', jobRoutes);
 
 // Error handler
-app.use((err, req, res, next) => {
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
   res.status(500).json({
     success: false,
