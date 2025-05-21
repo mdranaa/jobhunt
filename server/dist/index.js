@@ -49,7 +49,6 @@ dotenv.config();
 const app = (0, express_1.default)();
 const PORT = Number(process.env.PORT) || 5000;
 const MONGODB_URI = process.env.MONGODB_URI || '';
-console.log('Loaded JWT_SECRET:', process.env.JWT_SECRET);
 // MongoDB connection
 mongoose_1.default
     .connect(MONGODB_URI)
