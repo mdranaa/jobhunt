@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
-import { verifyToken } from '../utils/jwtUtils';
-import User, { IUser } from '../models/User';
+import { Request, Response, NextFunction } from "express";
+import { verifyToken } from "../utils/jwtUtils";
+import User, { IUser } from "../models/User";
 
 interface AuthRequest extends Request {
   user?: IUser;
@@ -10,16 +10,16 @@ interface AuthRequest extends Request {
 export const protect = async (
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   let token: string | undefined;
 
   // Check if token exists in headers
   if (
     req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer ')
+    req.headers.authorization.startsWith("Bearer ")
   ) {
-    token = req.headers.authorization.split(' ')[1];
+    token = req.headers.authorization.split(" ")[1];
   } else if (req.cookies?.token) {
     // Check if token exists in cookies
     token = req.cookies.token;
@@ -28,7 +28,7 @@ export const protect = async (
   if (!token) {
     res.status(401).json({
       success: false,
-      message: 'Not authorized to access this route'
+      message: "Not authorized to access this route",
     });
     return;
   }
@@ -37,21 +37,21 @@ export const protect = async (
     // Verify token
     const decoded = verifyToken(token);
 
-    if (!decoded || typeof decoded === 'string' || !('id' in decoded)) {
+    if (!decoded || typeof decoded === "string" || !("id" in decoded)) {
       res.status(401).json({
         success: false,
-        message: 'Invalid token'
+        message: "Invalid token",
       });
       return;
     }
 
     // Get user from the token
-    const user = await User.findById(decoded.id).select('-password');
+    const user = await User.findById(decoded.id).select("-password");
 
     if (!user) {
       res.status(401).json({
         success: false,
-        message: 'User no longer exists'
+        message: "User no longer exists",
       });
       return;
     }
@@ -61,7 +61,7 @@ export const protect = async (
   } catch {
     res.status(401).json({
       success: false,
-      message: 'Not authorized to access this route'
+      message: "Not authorized to access this route",
     });
   }
 };
@@ -72,7 +72,7 @@ export const authorize = (...roles: string[]) => {
     if (!req.user || !roles.includes(req.user.role)) {
       res.status(403).json({
         success: false,
-        message: `User role ${req.user?.role} is not authorized to access this route`
+        message: `User role ${req.user?.role} is not authorized to access this route`,
       });
       return;
     }

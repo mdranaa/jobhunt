@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
-import Job from '../models/Job';
-import { v2 as cloudinary } from 'cloudinary';
+import { Request, Response } from "express";
+import Job from "../models/Job";
+import { v2 as cloudinary } from "cloudinary";
 
 interface AuthRequest extends Request {
   user?: {
@@ -11,9 +11,9 @@ interface AuthRequest extends Request {
 }
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || '',
-  api_key: process.env.CLOUDINARY_API_KEY || '',
-  api_secret: process.env.CLOUDINARY_API_SECRET || ''
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "",
+  api_key: process.env.CLOUDINARY_API_KEY || "",
+  api_secret: process.env.CLOUDINARY_API_SECRET || "",
 });
 
 export const createJob = async (req: AuthRequest, res: Response) => {
@@ -25,19 +25,19 @@ export const createJob = async (req: AuthRequest, res: Response) => {
       category,
       company,
       location,
-      applicationDeadline
+      applicationDeadline,
     } = req.body;
 
-    let imageUrl = '';
-    let imagePublicId = '';
+    let imageUrl = "";
+    let imagePublicId = "";
 
     if (req.file) {
-      const b64 = req.file.buffer.toString('base64');
+      const b64 = req.file.buffer.toString("base64");
       const dataURI = `data:${req.file.mimetype};base64,${b64}`;
 
       const result = await cloudinary.uploader.upload(dataURI, {
-        folder: 'job-board',
-        resource_type: 'image'
+        folder: "job-board",
+        resource_type: "image",
       });
 
       imageUrl = result.secure_url;
@@ -54,7 +54,7 @@ export const createJob = async (req: AuthRequest, res: Response) => {
       imageUrl,
       imagePublicId,
       user: req.user!.id,
-      applicationDeadline: applicationDeadline || null
+      applicationDeadline: applicationDeadline || null,
     });
 
     res.status(201).json({ success: true, job });
@@ -66,12 +66,12 @@ export const createJob = async (req: AuthRequest, res: Response) => {
 export const getJobs = async (req: Request, res: Response) => {
   try {
     const queryObj = { ...req.query } as Record<string, any>;
-    const excludeFields = ['page', 'sort', 'limit', 'fields'];
+    const excludeFields = ["page", "sort", "limit", "fields"];
     excludeFields.forEach((field) => delete queryObj[field]);
 
     const query = Job.find(queryObj).populate({
-      path: 'user',
-      select: 'name company'
+      path: "user",
+      select: "name company",
     });
 
     const page = parseInt(req.query.page as string, 10) || 1;
@@ -89,9 +89,9 @@ export const getJobs = async (req: Request, res: Response) => {
       total,
       pagination: {
         currentPage: page,
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.ceil(total / limit),
       },
-      jobs
+      jobs,
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -101,12 +101,12 @@ export const getJobs = async (req: Request, res: Response) => {
 export const getJob = async (req: Request, res: Response): Promise<void> => {
   try {
     const job = await Job.findById(req.params.id).populate({
-      path: 'user',
-      select: 'name company'
+      path: "user",
+      select: "name company",
     });
 
     if (!job) {
-      res.status(404).json({ success: false, message: 'Job not found' });
+      res.status(404).json({ success: false, message: "Job not found" });
       return;
     }
 
@@ -118,20 +118,20 @@ export const getJob = async (req: Request, res: Response): Promise<void> => {
 
 export const updateJob = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     let job = await Job.findById(req.params.id);
 
     if (!job) {
-      res.status(404).json({ success: false, message: 'Job not found' });
+      res.status(404).json({ success: false, message: "Job not found" });
       return;
     }
 
-    if (job.user.toString() !== req.user!.id && req.user!.role !== 'admin') {
+    if (job.user.toString() !== req.user!.id && req.user!.role !== "admin") {
       res.status(403).json({
         success: false,
-        message: 'Not authorized to update this job'
+        message: "Not authorized to update this job",
       });
       return;
     }
@@ -143,12 +143,12 @@ export const updateJob = async (
         await cloudinary.uploader.destroy(job.imagePublicId);
       }
 
-      const b64 = req.file.buffer.toString('base64');
+      const b64 = req.file.buffer.toString("base64");
       const dataURI = `data:${req.file.mimetype};base64,${b64}`;
 
       const result = await cloudinary.uploader.upload(dataURI, {
-        folder: 'job-board',
-        resource_type: 'image'
+        folder: "job-board",
+        resource_type: "image",
       });
 
       updateData.imageUrl = result.secure_url;
@@ -157,7 +157,7 @@ export const updateJob = async (
 
     job = await Job.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
-      runValidators: true
+      runValidators: true,
     });
 
     res.status(200).json({ success: true, job });
@@ -168,20 +168,20 @@ export const updateJob = async (
 
 export const deleteJob = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const job = await Job.findById(req.params.id);
 
     if (!job) {
-      res.status(404).json({ success: false, message: 'Job not found' });
+      res.status(404).json({ success: false, message: "Job not found" });
       return;
     }
 
-    if (job.user.toString() !== req.user!.id && req.user!.role !== 'admin') {
+    if (job.user.toString() !== req.user!.id && req.user!.role !== "admin") {
       res.status(403).json({
         success: false,
-        message: 'Not authorized to delete this job'
+        message: "Not authorized to delete this job",
       });
       return;
     }
@@ -194,7 +194,7 @@ export const deleteJob = async (
 
     res.status(200).json({
       success: true,
-      message: 'Job deleted successfully'
+      message: "Job deleted successfully",
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -203,29 +203,29 @@ export const deleteJob = async (
 
 export const uploadJobImage = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     if (!req.file) {
       res.status(400).json({
         success: false,
-        message: 'Please upload a file'
+        message: "Please upload a file",
       });
       return;
     }
 
-    const b64 = req.file.buffer.toString('base64');
+    const b64 = req.file.buffer.toString("base64");
     const dataURI = `data:${req.file.mimetype};base64,${b64}`;
 
     const result = await cloudinary.uploader.upload(dataURI, {
-      folder: 'job-board',
-      resource_type: 'image'
+      folder: "job-board",
+      resource_type: "image",
     });
 
     res.status(200).json({
       success: true,
       url: result.secure_url,
-      public_id: result.public_id
+      public_id: result.public_id,
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
